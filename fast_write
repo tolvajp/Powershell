@@ -1,0 +1,24 @@
+<#This function is way faster than the out-file commandlet.
+Created by Péter Tolvaj. tolvajp@gmail.com#>
+
+function fast_write($filepath,$arrayofstring,$append=$false)
+{
+
+# define the parameters for file stream
+if ($append)
+    {$mode = [System.IO.FileMode]::Append}
+else
+    {$mode = [System.IO.FileMode]::Create}
+
+$access = [System.IO.FileAccess]::Write
+$sharing = [IO.FileShare]::Read
+
+# create the FileStream and StreamWriter objects
+$fs = New-Object IO.FileStream($filepath, $mode, $access, $sharing)
+$sw = New-Object System.IO.StreamWriter($fs)
+
+# write each row of the data and remember to call to Dispose to clean up the resources
+$arrayofstring | foreach {$sw.WriteLine($_)}
+$sw.Dispose()
+$fs.Dispose()
+} 

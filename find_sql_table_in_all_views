@@ -1,0 +1,31 @@
+# Made by Péter Tolvaj
+# tolvajp@gmail.com
+
+$sqlserver='your_sql_server'
+$tables=import-csv "c:\temp\tables.csv"
+$views_to_edit = @()
+
+$sqlstr="SELECT name FROM master.sys.databases"
+$databases=Invoke-Sqlcmd -ServerInstance $sqlserver -Query $sqlstr
+$view_definitions=@()
+foreach ($database in $databases.name)
+    {$sqlstr="USE $database
+SELECT  (TABLE_CATALOG+'.'+TABLE_SCHEMA+'.'+TABLE_NAME) AS name, view_definition
+from INFORMATION_SCHEMA.VIEWS iv
+join sys.views v on v.name = iv.Table_Name"
+$view_definitions+=Invoke-Sqlcmd -serverinstance $sqlserver -Query $sqlstr
+    }
+
+
+foreach ($tofind in $tables.table_name)
+    {
+    foreach ($matching_view in $view_definitions | where {$_.view_definition -like "*$tofind*"})
+        {
+        $view = New-Object -TypeName PSobject
+        $view | Add-Member -MemberType NoteProperty -Name "view_name" -Value $matching_view.name
+        $view | Add-Member -MemberType NoteProperty -Name "found_table" -Value $tofind
+        $views_to_edit+=$view
+        }
+    }
+
+$views_to_edit

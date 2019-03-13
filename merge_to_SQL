@@ -1,0 +1,47 @@
+function merge_to_SQL ($list,[array]$key_names,$sqlserver,$table_name)
+{
+<#This function is created by Péter Tolvaj tolvajp@gmail.com
+If you want to use it, modify it, feel free, but please leave this comment in.#>
+
+$noteproperty_names=@()
+$noteproperty_names+=($list | gm | where {$_.membertype -eq 'noteproperty'}).name
+
+
+$sqltext= "MERGE "+$table_name+" AS T USING (VALUES"
+foreach ($line in $list)
+    {$sqltext+="("
+    foreach ($property in $noteproperty_names)
+        {
+        $sqltext+="'"+$line.($property)+"',"
+        }
+    $sqltext= $sqltext.Substring(0,$sqltext.Length-1)
+    $sqltext+="),"
+    }
+$sqltext= $sqltext.Substring(0,$sqltext.Length-1)
+$sqltext+=") as S("+($noteproperty_names -join (','))+") on "
+$counter=0
+foreach ($key in $key_names)
+    {
+    if ($counter -ne 0 ) {$sqltext+=" AND "}
+    $counter+=1
+    $sqltext+="s."+$key+"=t."+$key
+    }
+$sqltext+=" WHEN MATCHED THEN
+	UPDATE SET "
+$counter=1
+foreach ($update_property in ($noteproperty_names | where {$key_names -notcontains $_}))
+    {
+
+    $sqltext+= $update_property+"=s."+$update_property
+    if ($counter -ne $key_names.count) {$sqltext+=","}
+    $counter+=1
+    }
+$sqltext+=" WHEN NOT MATCHED THEN
+ INSERT VALUES ("+($noteproperty_names -join (","))+")
+ ;
+ Select @@ROWCOUNT"
+Invoke-Sqlcmd -ServerInstance $sqlserver -Query $sqltext -ErrorAction SilentlyContinue
+if (!$?) {return 'error'}
+else {return 0}
+
+} 

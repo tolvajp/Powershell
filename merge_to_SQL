@@ -1,4 +1,4 @@
-function merge_to_SQL ($list,[array]$key_names,$sqlserver,$table_name)
+function merge_to_SQL ($list,[array]$key_names,$sqlserver=,$table_name=)
 {
 <#This function is created by Péter Tolvaj tolvajp@gmail.com
 If you want to use it, modify it, feel free, but please leave this comment in.#>
@@ -7,7 +7,7 @@ $noteproperty_names=@()
 $noteproperty_names+=($list | gm | where {$_.membertype -eq 'noteproperty'}).name
 
 
-$sqltext= "MERGE "+$table_name+" AS T USING (VALUES"
+$sqltext= "MERGE "+$global:sql_table+" AS T USING (VALUES"
 foreach ($line in $list)
     {$sqltext+="("
     foreach ($property in $noteproperty_names)
@@ -31,10 +31,10 @@ $sqltext+=" WHEN MATCHED THEN
 $counter=1
 foreach ($update_property in ($noteproperty_names | where {$key_names -notcontains $_}))
     {
-
-    $sqltext+= $update_property+"=s."+$update_property
-    if ($counter -ne $key_names.count) {$sqltext+=","}
     $counter+=1
+    $sqltext+= $update_property+"=s."+$update_property+" "
+    if ($counter -ne $noteproperty_names.count) {$sqltext+=","}
+    
     }
 $sqltext+=" WHEN NOT MATCHED THEN
  INSERT VALUES ("+($noteproperty_names -join (","))+")
@@ -43,5 +43,4 @@ $sqltext+=" WHEN NOT MATCHED THEN
 Invoke-Sqlcmd -ServerInstance $sqlserver -Query $sqltext -ErrorAction SilentlyContinue
 if (!$?) {return 'error'}
 else {return 0}
-
-} 
+}

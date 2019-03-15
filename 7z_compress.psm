@@ -1,0 +1,16 @@
+function 7z_compress ($sourcefilelist,$destinationfile,$7ziplocation='c:\program files\7-zip\7z.exe')
+    {
+    <#This script is written by Péter Tolvaj tolvajp@gmail.com
+    Feel free, to use it, but please leave this comment here.#>
+    $str='"'+$7ziplocation+'" u -mx9 -t7z '
+    $str+=$destinationfile+" "
+    $sourcefilelist | foreach {$str+=$_+' '}
+
+    $result=cmd /C $str
+    if (($result | select -last 1)  -eq "Everything is Ok") 
+        {remove-item ($files_to_compress) | where {$_ -ne $compressed_file_name}
+        return 0}
+    else 
+        {write-host "something went wrong. Please check"
+        return 1}
+    }
